@@ -1,25 +1,79 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Peer assignment 1 of reproducible Research"
+author: "Jie Yong"
+date: "Tuesday, December 09, 2014"
+output: html_document
 ---
 
+###1. Loading and preprocessing the data:  
+read the csv file and change the type of the date column
 
-## Loading and preprocessing the data
+```{r loading}
+data <-read.csv("C:/R/activity.csv")
+data$date <-as.Date(data$date)
+```
+
+###2. What is mean total number of steps taken per day?
+First calculate the sum of the steps for each day then make a histogram. Next I calculate the mean and median of the steps for each day.  
+```{r mean and median}
+sum <-tapply(data$steps, data$date, sum)
+hist(sum,breaks=20)
+dev.copy(png,file="instructions_fig/hist1.png")
+dev.off()
+mean0 <- as.character(round(mean(sum,na.rm=TRUE),2))
+median0 <-as.character(round(median(sum, na.rm=TRUE),2))
+
+```
+total number of steps taken per day: the mean is `r mean0`. The median is `r median0`
+
+###3. What is the average daily activity pattern?
+```{r daily}
+library(lattice)
+data$daily <-tapply(data$steps, data$interval,mean,na.rm=TRUE)
+xyplot(daily ~ interval, data=data, type="l")
+dev.copy(png,file="instructions_fig/daily_average.png")
+dev.off()
+inx <- which.max(data$daily)
+inx
+```
+The interval `r inx` has the maximum of average daily activity
 
 
+###4. Imputing missing values  
+the missing data is replaced by the daily average of that interval.
+```{r}
+row.has.na <- apply(data, 1, function(x){any(is.na(x))})
+#total number of rows that have NAs are:
+sum(row.has.na)
 
-## What is mean total number of steps taken per day?
+dat <- data
+daily <-tapply(data$steps, data$interval,mean,na.rm=TRUE)
+
+for (i in which(is.na(data$steps))) {
+  index <-data[i,3]/5+1
+  dat[i,1] <- round(daily[index],2)
+}
+
+sum2 <-tapply(dat$steps, dat$date, sum)
+hist(sum2,breaks=20)
+dev.copy(png,file="instructions_fig/hist2.png")
+dev.off()
+mean2 <- as.character(round(mean(sum2,na.rm=TRUE),2))
+median2 <-as.character(round(median(sum2, na.rm=TRUE),2))
+```
+After imputing the missing values, the new mean is `r mean2`. The new median is `r median2`. Their values do not change.
 
 
+###5. Are there differences in activity patterns between weekdays and weekends?
+```{r}
+dat$date <-as.factor(ifelse(weekdays(dat$date) %in% c("Saturday","Sunday"), "Weekend", "Weekday"))
+result <- aggregate(steps ~ date + interval, data = dat, FUN= "mean" )
+xyplot(steps~interval|date,data=result,type="l",layout=c(1,2))
+dev.copy(png,file="instructions_fig/difference.png")
+dev.off()
+```
 
-## What is the average daily activity pattern?
 
+As you can see, there is a significant difference between weekday and weekend activity patterns.
 
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+The end.
